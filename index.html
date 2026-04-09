@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frimaral Logística</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Sistema Logístico Frimaral</h1>
+        <p>
+          Cargá tu archivo Excel actualizado y consultá contenedores, pallets,
+          clientes y vencimientos en un solo lugar.
+        </p>
+      </header>
+
+      <section class="card upload">
+        <label for="excelFile" class="label">Subir Excel (.xlsx, .xls, .csv)</label>
+        <input id="excelFile" type="file" accept=".xlsx,.xls,.csv" />
+        <small id="status">Todavía no hay un archivo cargado.</small>
+      </section>
+
+      <section class="card filters" id="filters" hidden>
+        <h2>Buscar y filtrar</h2>
+        <div class="filter-grid">
+          <input id="searchText" type="text" placeholder="Buscar por cliente, contenido, DUA, lote..." />
+          <input id="clientFilter" type="text" placeholder="Filtrar por cliente (código o nombre)" />
+          <input id="containerFilter" type="text" placeholder="Filtrar por contenedor" />
+          <input id="lotFilter" type="text" placeholder="Filtrar por Nro Lote" />
+        </div>
+      </section>
+
+      <section class="card summary" id="summary" hidden>
+        <h2>Resumen</h2>
+        <div class="summary-grid">
+          <article><strong id="rowsCount">0</strong><span>Registros</span></article>
+          <article><strong id="palletsTotal">0</strong><span>Total pallets</span></article>
+          <article><strong id="boxesTotal">0</strong><span>Total cajas</span></article>
+          <article><strong id="kilosTotal">0</strong><span>Total kilos</span></article>
+        </div>
+      </section>
+
+      <section class="card table-card" id="tableSection" hidden>
+        <h2>Detalle de movimientos</h2>
+        <div class="table-wrap">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Cód. Cliente</th>
+                <th>Fec Com</th>
+                <th>Fec Ent</th>
+                <th>Contenedor</th>
+                <th>Pallets</th>
+                <th>Cajas</th>
+                <th>Kilos</th>
+                <th>Contenido</th>
+                <th>Nro Lote</th>
+                <th>DUA</th>
+                <th>F. Venc.</th>
+                <th>L/E</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
