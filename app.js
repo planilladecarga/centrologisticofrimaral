@@ -3,7 +3,6 @@ const statusEl = document.getElementById('status');
 const filtersSection = document.getElementById('filters');
 const summarySection = document.getElementById('summary');
 const tableSection = document.getElementById('tableSection');
-const containerSection = document.getElementById('containerSection');
 
 const searchText = document.getElementById('searchText');
 const clientFilter = document.getElementById('clientFilter');
@@ -15,14 +14,8 @@ const rowsCount = document.getElementById('rowsCount');
 const palletsTotal = document.getElementById('palletsTotal');
 const boxesTotal = document.getElementById('boxesTotal');
 const kilosTotal = document.getElementById('kilosTotal');
-const containerCards = document.getElementById('containerCards');
-const buildInfo = document.getElementById('buildInfo');
 
 let allRows = [];
-if (buildInfo) {
-  buildInfo.textContent = 'Versión web: 2026-04-09 (deploy debug)';
-}
-
 
 excelInput.addEventListener('change', async (event) => {
   const file = event.target.files?.[0];
@@ -50,14 +43,12 @@ excelInput.addEventListener('change', async (event) => {
     filtersSection.hidden = false;
     summarySection.hidden = false;
     tableSection.hidden = false;
-    containerSection.hidden = false;
     render();
   } catch (error) {
     statusEl.textContent = `Error al procesar el archivo: ${error.message}`;
     filtersSection.hidden = true;
     summarySection.hidden = true;
     tableSection.hidden = true;
-    containerSection.hidden = true;
     allRows = [];
   }
 });
@@ -70,7 +61,6 @@ function parseRows(grid) {
   const result = [];
   let currentClientCode = '';
   let currentClientName = '';
-  let columnMap = null;
 
   for (const row of grid) {
     const colA = clean(row[0]);
@@ -87,133 +77,34 @@ function parseRows(grid) {
       continue;
     }
 
-    const possibleHeader = buildColumnMap(row);
-    if (possibleHeader) {
-      columnMap = possibleHeader;
-      continue;
-    }
-
-    if (!columnMap) {
-      continue;
-    }
-
-    const fecCom = clean(getCell(row, columnMap, 'fecCom'));
-    const fecEnt = clean(getCell(row, columnMap, 'fecEnt'));
-    const container = normalizeContainer(clean(getCell(row, columnMap, 'container')));
-
     const isDataRow =
-      isDateLike(fecCom) &&
-      isDateLike(fecEnt) &&
-      container &&
-      !container.toLowerCase().includes('contenedor');
+      isDateLike(colA) &&
+      isDateLike(colB) &&
+      colC &&
+      !colC.toLowerCase().includes('contenedor');
 
     if (!isDataRow) {
-      continue;
-    }
-
-    const palletsRaw = getCell(row, columnMap, 'pallets');
-    const boxesRaw = getCell(row, columnMap, 'boxes');
-    const kilosRaw = getCell(row, columnMap, 'kilos');
-
-    if (!isNumericLike(palletsRaw) || !isNumericLike(boxesRaw) || !isNumericLike(kilosRaw)) {
-      continue;
-    }
-
-    const pallets = toNumber(palletsRaw);
-    const boxes = toNumber(boxesRaw);
-    const kilos = toNumber(kilosRaw);
-
-    if (pallets > 200 || boxes > 10000 || kilos > 100000) {
       continue;
     }
 
     result.push({
       clientCode: currentClientCode,
       clientName: currentClientName,
-      fecCom,
-      fecEnt,
-      container,
-      pallets,
-      boxes,
-      kilos,
-      content: clean(getCell(row, columnMap, 'content')),
-      lot: clean(getCell(row, columnMap, 'lot')),
-      dua: clean(getCell(row, columnMap, 'dua')),
-      expiration: clean(getCell(row, columnMap, 'expiration')),
-      le: clean(getCell(row, columnMap, 'le'))
+      fecCom: colA,
+      fecEnt: colB,
+      container: colC,
+      pallets: toNumber(row[4]),
+      boxes: toNumber(row[5]),
+      kilos: toNumber(row[6]),
+      content: clean(row[7]),
+      lot: clean(row[8]),
+      dua: clean(row[9]),
+      expiration: clean(row[10]),
+      le: clean(row[11])
     });
   }
 
   return result;
-}
-
-function buildColumnMap(row) {
-  const aliases = {
-    feccom: 'fecCom',
-    fecent: 'fecEnt',
-    contenedor: 'container',
-    pallets: 'pallets',
-    cajas: 'boxes',
-    kilos: 'kilos',
-    contenido: 'content',
-    nrolote: 'lot',
-    dua: 'dua',
-    fvenc: 'expiration',
-    le: 'le'
-  };
-
-  const mapped = {};
-  row.forEach((cell, index) => {
-    const token = normalizeHeader(cell);
-    const key = aliases[token];
-    if (key) {
-      mapped[key] = index;
-    }
-  });
-
-  if (mapped.fecCom !== undefined && mapped.fecEnt !== undefined && mapped.container !== undefined) {
-    return {
-      fecCom: mapped.fecCom,
-      fecEnt: mapped.fecEnt,
-      container: mapped.container,
-      pallets: mapped.pallets ?? 4,
-      boxes: mapped.boxes ?? 5,
-      kilos: mapped.kilos ?? 6,
-      content: mapped.content ?? 7,
-      lot: mapped.lot ?? 8,
-      dua: mapped.dua ?? 9,
-      expiration: mapped.expiration ?? 10,
-      le: mapped.le ?? 11
-    };
-  }
-
-  return null;
-}
-
-function normalizeHeader(value) {
-  return clean(value)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-function getCell(row, map, field) {
-  const index = map[field];
-  if (index === undefined) return '';
-  return row[index] ?? '';
-}
-
-function normalizeContainer(value) {
-  const text = clean(value);
-  if (!text) return '';
-
-  const compact = text.replace(/\s+/g, '');
-  if (/^[A-Z]{4}\d{6,7}-\d$/i.test(compact)) {
-    return `${compact.slice(0, 4)} ${compact.slice(4)}`.toUpperCase();
-  }
-
-  return text;
 }
 
 function render() {
@@ -243,77 +134,6 @@ function render() {
   palletsTotal.textContent = formatNumber(filtered.reduce((sum, r) => sum + r.pallets, 0));
   boxesTotal.textContent = formatNumber(filtered.reduce((sum, r) => sum + r.boxes, 0));
   kilosTotal.textContent = formatNumber(filtered.reduce((sum, r) => sum + r.kilos, 0));
-  renderContainerCards(filtered);
-}
-
-
-function renderContainerCards(rows) {
-  const grouped = new Map();
-
-  for (const row of rows) {
-    const key = row.container || 'SIN CONTENEDOR';
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key).push(row);
-  }
-
-  const cardsHtml = [...grouped.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([container, items]) => {
-      const palletSum = items.reduce((sum, r) => sum + r.pallets, 0);
-      const boxSum = items.reduce((sum, r) => sum + r.boxes, 0);
-      const kiloSum = items.reduce((sum, r) => sum + r.kilos, 0);
-
-      const itemRows = items
-        .map(
-          (item) => `
-            <tr>
-              <td>${escapeHtml(item.fecCom)}</td>
-              <td>${escapeHtml(item.fecEnt)}</td>
-              <td>${escapeHtml(item.lot)}</td>
-              <td>${escapeHtml(item.dua)}</td>
-              <td>${escapeHtml(item.expiration)}</td>
-              <td>${formatNumber(item.pallets)}</td>
-              <td>${formatNumber(item.boxes)}</td>
-              <td>${formatNumber(item.kilos)}</td>
-              <td>${escapeHtml(item.content)}</td>
-            </tr>`
-        )
-        .join('');
-
-      return `
-        <details class="container-card" open>
-          <summary>
-            <div><strong>${escapeHtml(container)}</strong><span>${escapeHtml(items[0].clientName)} (${escapeHtml(items[0].clientCode)})</span></div>
-            <div><strong>${items.length}</strong><span>Ítems</span></div>
-            <div><strong>${formatNumber(palletSum)}</strong><span>Pallets</span></div>
-            <div><strong>${formatNumber(boxSum)}</strong><span>Cajas</span></div>
-            <div><strong>${formatNumber(kiloSum)}</strong><span>Kilos</span></div>
-          </summary>
-          <div class="items">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fec Com</th>
-                  <th>Fec Ent</th>
-                  <th>Lote</th>
-                  <th>DUA</th>
-                  <th>F. Venc.</th>
-                  <th>Pallets</th>
-                  <th>Cajas</th>
-                  <th>Kilos</th>
-                  <th>Contenido</th>
-                </tr>
-              </thead>
-              <tbody>${itemRows}</tbody>
-            </table>
-          </div>
-        </details>`;
-    })
-    .join('');
-
-  containerCards.innerHTML = cardsHtml || '<p>No hay contenedores para mostrar con estos filtros.</p>';
 }
 
 function applyFilters(rows) {
@@ -354,18 +174,8 @@ function clean(value) {
   return (value ?? '').toString().trim();
 }
 
-function isNumericLike(value) {
-  const raw = clean(value);
-  if (!raw) return false;
-  if (/[a-zA-Z]/.test(raw)) return false;
-  return /^[-+]?\d{1,3}(?:[.\s]?\d{3})*(?:,\d+)?$|^[-+]?\d+(?:[.,]\d+)?$/.test(raw);
-}
-
 function toNumber(value) {
-  const raw = clean(value);
-  if (/[a-zA-Z]/.test(raw)) return 0;
-
-  const normalized = raw
+  const normalized = clean(value)
     .replace(/\./g, '')
     .replace(',', '.')
     .replace(/[^\d.-]/g, '');
