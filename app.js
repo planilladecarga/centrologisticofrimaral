@@ -61,7 +61,6 @@ function parseRows(grid) {
   const result = [];
   let currentClientCode = '';
   let currentClientName = '';
-  let columnMap = null;
 
   for (const row of grid) {
     const colA = clean(row[0]);
@@ -78,25 +77,11 @@ function parseRows(grid) {
       continue;
     }
 
-    const possibleHeader = buildColumnMap(row);
-    if (possibleHeader) {
-      columnMap = possibleHeader;
-      continue;
-    }
-
-    if (!columnMap) {
-      continue;
-    }
-
-    const fecCom = clean(getCell(row, columnMap, 'fecCom'));
-    const fecEnt = clean(getCell(row, columnMap, 'fecEnt'));
-    const container = normalizeContainer(clean(getCell(row, columnMap, 'container')));
-
     const isDataRow =
-      isDateLike(fecCom) &&
-      isDateLike(fecEnt) &&
-      container &&
-      !container.toLowerCase().includes('contenedor');
+      isDateLike(colA) &&
+      isDateLike(colB) &&
+      colC &&
+      !colC.toLowerCase().includes('contenedor');
 
     if (!isDataRow) {
       continue;
@@ -105,90 +90,21 @@ function parseRows(grid) {
     result.push({
       clientCode: currentClientCode,
       clientName: currentClientName,
-      fecCom,
-      fecEnt,
-      container,
-      pallets: toNumber(getCell(row, columnMap, 'pallets')),
-      boxes: toNumber(getCell(row, columnMap, 'boxes')),
-      kilos: toNumber(getCell(row, columnMap, 'kilos')),
-      content: clean(getCell(row, columnMap, 'content')),
-      lot: clean(getCell(row, columnMap, 'lot')),
-      dua: clean(getCell(row, columnMap, 'dua')),
-      expiration: clean(getCell(row, columnMap, 'expiration')),
-      le: clean(getCell(row, columnMap, 'le'))
+      fecCom: colA,
+      fecEnt: colB,
+      container: colC,
+      pallets: toNumber(row[4]),
+      boxes: toNumber(row[5]),
+      kilos: toNumber(row[6]),
+      content: clean(row[7]),
+      lot: clean(row[8]),
+      dua: clean(row[9]),
+      expiration: clean(row[10]),
+      le: clean(row[11])
     });
   }
 
   return result;
-}
-
-function buildColumnMap(row) {
-  const aliases = {
-    feccom: 'fecCom',
-    fecent: 'fecEnt',
-    contenedor: 'container',
-    pallets: 'pallets',
-    cajas: 'boxes',
-    kilos: 'kilos',
-    contenido: 'content',
-    nrolote: 'lot',
-    dua: 'dua',
-    fvenc: 'expiration',
-    le: 'le'
-  };
-
-  const mapped = {};
-  row.forEach((cell, index) => {
-    const token = normalizeHeader(cell);
-    const key = aliases[token];
-    if (key) {
-      mapped[key] = index;
-    }
-  });
-
-  if (mapped.fecCom !== undefined && mapped.fecEnt !== undefined && mapped.container !== undefined) {
-    return {
-      fecCom: mapped.fecCom,
-      fecEnt: mapped.fecEnt,
-      container: mapped.container,
-      pallets: mapped.pallets ?? 4,
-      boxes: mapped.boxes ?? 5,
-      kilos: mapped.kilos ?? 6,
-      content: mapped.content ?? 7,
-      lot: mapped.lot ?? 8,
-      dua: mapped.dua ?? 9,
-      expiration: mapped.expiration ?? 10,
-      le: mapped.le ?? 11
-    };
-  }
-
-  return null;
-}
-
-function normalizeHeader(value) {
-  return clean(value)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-function getCell(row, map, field) {
-  const index = map[field];
-  if (index === undefined) return '';
-  return row[index] ?? '';
-}
-
-function normalizeContainer(value) {
-  const text = clean(value);
-  if (!text) return '';
-
-  const compact = text.replace(/\s+/g, '');
-  if (/^[A-Z]{4}\d{6,7}-\d$/i.test(compact)) {
-    return `${compact.slice(0, 4)} ${compact.slice(4)}`.toUpperCase();
-  }
-
-  return text;
 }
 
 function render() {
